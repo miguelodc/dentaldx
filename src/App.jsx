@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react"
 import { supabase } from "./supabase.js"
-import { defaultState, calcTreatment, generateRecommendations, fmt, fmtK, today } from "./data.js"
+import { defaultState, calcTreatment, generateRecommendations, fmt, fmtK, today, TREATMENT_CATALOG } from "./data.js"
 
 const ADMIN_PASS = "Miguelo29"
 const TABS = ["🏠 Inicio","💊 Insumos","📊 Tratamientos","🏢 Costos Fijos","⚖️ Equilibrio","🎯 Meta","📅 Agenda","📄 Informe"]
@@ -438,16 +438,49 @@ function ScenarioSimulator({ t }) {
 // ─── TAB TRATAMIENTOS ────────────────────────────────────────────────────────
 function TabTratamientos({ enriched, update }) {
   const [open, setOpen] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+
   const upd = (id, field, value) => update(prev=>({
     ...prev,
     treatments: prev.treatments.map(t=>t.id===id?{...t,[field]:parseFloat(value)||0}:t)
   }))
+
+  const removeTreatment = (id) => update(prev=>({
+    ...prev,
+    treatments: prev.treatments.filter(t=>t.id!==id),
+    agenda: Object.fromEntries(Object.entries(prev.agenda).filter(([k])=>k!==id))
+  }))
+
+  const addTreatment = (t) => update(prev=>({
+    ...prev,
+    treatments: [...prev.treatments, t],
+    agenda: {...prev.agenda, [t.id]: 0}
+  }))
+
   return (
     <div>
-      <h2 style={{fontSize:19,fontWeight:700,marginBottom:4}}>Tratamientos</h2>
-      <p style={{color:"#4B5A77",fontSize:12,marginBottom:16}}>
-        Precio y tiempo <strong style={{color:"#E2E8F4"}}>por sesión</strong> · Tocá para editar y simular escenarios.
-      </p>
+      {showModal && (
+        <ModalAgregarTratamiento
+          onClose={()=>setShowModal(false)}
+          onAdd={addTreatment}
+          existingIds={enriched.map(t=>t.id)}
+        />
+      )}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+        <div>
+          <h2 style={{fontSize:19,fontWeight:700,marginBottom:2}}>Tratamientos</h2>
+          <p style={{color:"#4B5A77",fontSize:12}}>
+            Precio y tiempo <strong style={{color:"#E2E8F4"}}>por sesión</strong> · Tocá para editar.
+          </p>
+        </div>
+        <button onClick={()=>setShowModal(true)}
+          style={{background:"linear-gradient(135deg,#00C896,#4FACFE)",border:"none",
+            borderRadius:10,padding:"9px 14px",color:"#080E1A",
+            fontFamily:"inherit",fontSize:12,fontWeight:700,cursor:"pointer",
+            whiteSpace:"nowrap",flexShrink:0}}>
+          + Agregar
+        </button>
+      </div>
       <div style={{display:"flex",flexDirection:"column",gap:9}}>
         {enriched.map(t=>(
           <div key={t.id} style={{background:open===t.id?"rgba(255,255,255,0.05)":"rgba(255,255,255,0.025)",
@@ -463,9 +496,14 @@ function TabTratamientos({ enriched, update }) {
                     <div style={{fontSize:10,color:"#4B5A77",marginTop:1}}>{t.paymentType}</div>
                   </div>
                 </div>
-                <div style={{textAlign:"right"}}>
+                <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
                   <div style={{color:t.color,fontWeight:700,fontSize:14}}>{fmt(t.totalPrice)}</div>
                   <div style={{fontSize:10,color:"#4B5A77"}}>{t.marginPct.toFixed(1)}% margen</div>
+                  <button onClick={e=>{e.stopPropagation();if(window.confirm("¿Eliminar "+t.name+"?"))removeTreatment(t.id)}}
+                    style={{background:"rgba(244,114,182,0.1)",border:"1px solid rgba(244,114,182,0.2)",
+                      borderRadius:6,padding:"2px 7px",color:"#F472B6",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>
+                    Eliminar
+                  </button>
                 </div>
               </div>
               <div style={{display:"flex",gap:7,marginTop:9,flexWrap:"wrap"}}>
@@ -911,6 +949,120 @@ function TabCostosFijos({ fixed, update, totalFixed }) {
           style={{background:"linear-gradient(135deg,#00C896,#4FACFE)",border:"none",
             borderRadius:8,padding:"8px 14px",color:"#080E1A",
             fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>+</button>
+      </div>
+    </div>
+  )
+}
+
+// ─── MODAL AGREGAR TRATAMIENTO ───────────────────────────────────────────────
+function ModalAgregarTratamiento({ onClose, onAdd, existingIds }) {
+  const [mode, setMode] = useState("catalog") // "catalog" | "custom"
+  const [custom, setCustom] = useState({
+    name:"", color:"#00C896", pricePerSession:0, sessions:1, timePerSession:30, paymentType:"Pago Único", supplies:[]
+  })
+
+  const available = TREATMENT_CATALOG.filter(t => !existingIds.includes(t.id))
+  const COLORS_LIST = ["#00C896","#4FACFE","#F7971E","#A78BFA","#F472B6","#34D399","#FB923C","#06B6D4","#8B5CF6","#EC4899","#F59E0B","#3B82F6","#EF4444","#14B8A6"]
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.88)",zIndex:999,
+      display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflowY:"auto"}}>
+      <div style={{background:"#0E1828",border:"1px solid rgba(0,200,150,0.22)",
+        borderRadius:20,padding:"24px",width:"100%",maxWidth:480,maxHeight:"90vh",overflowY:"auto"}}>
+
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
+          <h3 style={{fontSize:16,fontWeight:700}}>Agregar Tratamiento</h3>
+          <button onClick={onClose} style={{background:"none",border:"none",color:"#6B7A99",cursor:"pointer",fontSize:18}}>✕</button>
+        </div>
+
+        {/* Mode selector */}
+        <div style={{display:"flex",gap:8,marginBottom:18}}>
+          {[["catalog","📋 Desde catálogo"],["custom","✏️ Personalizado"]].map(([m,l])=>(
+            <button key={m} onClick={()=>setMode(m)} style={{
+              flex:1,background:mode===m?"rgba(0,200,150,0.12)":"rgba(255,255,255,0.04)",
+              border:`1px solid ${mode===m?"rgba(0,200,150,0.35)":"rgba(255,255,255,0.08)"}`,
+              borderRadius:9,padding:"8px",color:mode===m?"#00C896":"#6B7A99",
+              fontFamily:"inherit",fontSize:12,fontWeight:mode===m?600:400,cursor:"pointer"}}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {mode==="catalog" ? (
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {available.length===0 ? (
+              <div style={{textAlign:"center",color:"#4B5A77",padding:"20px",fontSize:12}}>
+                Ya tenés todos los tratamientos del catálogo agregados.
+              </div>
+            ) : available.map(t=>(
+              <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,
+                background:"rgba(255,255,255,0.025)",border:"1px solid rgba(255,255,255,0.06)",
+                borderRadius:10,padding:"11px 13px",cursor:"pointer",
+                transition:"all 0.15s"}}
+                onClick={()=>{ onAdd(t); onClose(); }}>
+                <div style={{width:9,height:9,borderRadius:"50%",background:t.color,flexShrink:0}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:500}}>{t.name}</div>
+                  <div style={{fontSize:10,color:"#4B5A77",marginTop:1}}>
+                    {t.sessions} ses. · {t.timePerSession}min/ses. · Precio base: ${t.pricePerSession.toLocaleString()}
+                  </div>
+                </div>
+                <div style={{fontSize:11,color:"#00C896",fontWeight:600}}>+ Agregar</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div>
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div>
+                <div style={{fontSize:9,color:"#4B5A77",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.5px"}}>Nombre del tratamiento</div>
+                <input value={custom.name} onChange={e=>setCustom(p=>({...p,name:e.target.value}))}
+                  placeholder="Ej: Prótesis fija"
+                  style={{width:"100%",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",
+                    borderRadius:9,padding:"9px 12px",color:"#E2E8F4",fontFamily:"inherit",fontSize:13,boxSizing:"border-box"}}/>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:9}}>
+                {[
+                  {label:"Precio / sesión",field:"pricePerSession",val:custom.pricePerSession},
+                  {label:"Sesiones",        field:"sessions",        val:custom.sessions},
+                  {label:"Min / sesión",    field:"timePerSession",  val:custom.timePerSession},
+                ].map(f=>(
+                  <div key={f.field}>
+                    <div style={{fontSize:9,color:"#4B5A77",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.4px"}}>{f.label}</div>
+                    <input type="number" value={f.val} onChange={e=>setCustom(p=>({...p,[f.field]:parseFloat(e.target.value)||0}))}
+                      style={{width:"100%",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",
+                        borderRadius:8,padding:"7px 9px",color:"#E2E8F4",fontFamily:"inherit",fontSize:12,boxSizing:"border-box"}}/>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div style={{fontSize:9,color:"#4B5A77",marginBottom:5,textTransform:"uppercase",letterSpacing:"0.5px"}}>Color</div>
+                <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                  {COLORS_LIST.map(c=>(
+                    <div key={c} onClick={()=>setCustom(p=>({...p,color:c}))}
+                      style={{width:24,height:24,borderRadius:"50%",background:c,cursor:"pointer",
+                        border:custom.color===c?"3px solid white":"3px solid transparent",transition:"border 0.1s"}}/>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={()=>{
+                if(!custom.name.trim()) return
+                onAdd({...custom, id:`custom_${Date.now()}`, supplies:[]})
+                onClose()
+              }}
+              disabled={!custom.name.trim()}
+              style={{width:"100%",marginTop:16,
+                background:custom.name.trim()?"linear-gradient(135deg,#00C896,#4FACFE)":"rgba(255,255,255,0.07)",
+                border:"none",borderRadius:11,padding:"12px",
+                color:custom.name.trim()?"#080E1A":"#4B5A77",
+                fontFamily:"inherit",fontSize:14,fontWeight:700,
+                cursor:custom.name.trim()?"pointer":"not-allowed"}}>
+              Agregar tratamiento →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
