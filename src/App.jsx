@@ -7,7 +7,7 @@ const TABS = ["🏠 Inicio","💊 Insumos","📊 Tratamientos","⚖️ Equilibri
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [state, setState]         = useState(defaultState)
+  const [state, setState] = useState(() => defaultState())
   const [tab, setTab]             = useState(0)
   const [showSetup, setShowSetup] = useState(false)
   const [saveFlash, setSaveFlash] = useState(false)
