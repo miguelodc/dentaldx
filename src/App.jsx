@@ -3,11 +3,11 @@ import { supabase } from "./supabase.js"
 import { defaultState, calcTreatment, generateRecommendations, fmt, fmtK, today } from "./data.js"
 
 const ADMIN_PASS = "Miguelo29"
-const TABS = ["🏠 Inicio","💊 Insumos","📊 Tratamientos","⚖️ Equilibrio","🎯 Meta","📅 Agenda","📄 Informe"]
+const TABS = ["🏠 Inicio","💊 Insumos","📊 Tratamientos","🏢 Costos Fijos","⚖️ Equilibrio","🎯 Meta","📅 Agenda","📄 Informe"]
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [state, setState] = useState(() => defaultState())
+  const [state, setState]         = useState(() => defaultState())
   const [tab, setTab]             = useState(0)
   const [showSetup, setShowSetup] = useState(false)
   const [saveFlash, setSaveFlash] = useState(false)
@@ -145,10 +145,11 @@ export default function App() {
           {tab===0 && <TabResumen sorted={sorted} enriched={enriched} totalFixed={totalFixed} state={state}/>}
           {tab===1 && <TabInsumos supplies={state.supplies} usdRate={state.usdRate} update={update}/>}
           {tab===2 && <TabTratamientos enriched={enriched} update={update}/>}
-          {tab===3 && <TabEquilibrio enriched={enriched} totalFixed={totalFixed} workMin={state.workMin} update={update}/>}
-          {tab===4 && <TabMeta enriched={enriched} totalFixed={totalFixed} incomeGoal={state.incomeGoal} update={update}/>}
-          {tab===5 && <TabAgenda enriched={enriched} agenda={state.agenda} update={update} totalFixed={totalFixed} workMin={state.workMin}/>}
-          {tab===6 && <TabInforme sorted={sorted} enriched={enriched} totalFixed={totalFixed} state={state} recommendations={recommendations}/>}
+          {tab===3 && <TabCostosFijos fixed={state.fixed} update={update} totalFixed={totalFixed}/>
+          }{tab===4 && <TabEquilibrio enriched={enriched} totalFixed={totalFixed} workMin={state.workMin} update={update}/>}
+          {tab===5 && <TabMeta enriched={enriched} totalFixed={totalFixed} incomeGoal={state.incomeGoal} update={update}/>}
+          {tab===6 && <TabAgenda enriched={enriched} agenda={state.agenda} update={update} totalFixed={totalFixed} workMin={state.workMin}/>}
+          {tab===7 && <TabInforme sorted={sorted} enriched={enriched} totalFixed={totalFixed} state={state} recommendations={recommendations}/>}
         </div>
       </div>
     </>
@@ -817,6 +818,99 @@ function TabInforme({ sorted, enriched, totalFixed, state, recommendations }) {
           <span>Generado con DentalDX · diagnóstico financiero para consultorios odontológicos</span>
           <span>{today()}</span>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── TAB COSTOS FIJOS ────────────────────────────────────────────────────────
+function TabCostosFijos({ fixed, update, totalFixed }) {
+  const [newName, setNewName] = useState("")
+  const [newAmount, setNewAmount] = useState("")
+
+  const updateItem = (id, field, value) => update(prev => ({
+    ...prev,
+    fixed: prev.fixed.map(c => c.id === id ? { ...c, [field]: field === "amount" ? (parseFloat(value) || 0) : value } : c)
+  }))
+
+  const removeItem = (id) => update(prev => ({
+    ...prev,
+    fixed: prev.fixed.filter(c => c.id !== id)
+  }))
+
+  const addItem = () => {
+    if (!newName || !newAmount) return
+    update(prev => ({
+      ...prev,
+      fixed: [...prev.fixed, { id: Date.now(), name: newName, amount: parseFloat(newAmount) || 0 }]
+    }))
+    setNewName(""); setNewAmount("")
+  }
+
+  return (
+    <div>
+      <h2 style={{fontSize:19,fontWeight:700,marginBottom:4}}>Costos Fijos</h2>
+      <p style={{color:"#4B5A77",fontSize:12,marginBottom:16}}>
+        Gastos mensuales fijos del consultorio. Editá los valores según tu realidad.
+      </p>
+
+      {/* Total */}
+      <div style={{background:"rgba(244,114,182,0.07)",border:"1px solid rgba(244,114,182,0.22)",
+        borderRadius:14,padding:"16px",textAlign:"center",marginBottom:20}}>
+        <div style={{fontSize:28,fontWeight:800,color:"#F472B6"}}>{fmt(totalFixed)}</div>
+        <div style={{fontSize:11,color:"#4B5A77",marginTop:3}}>Total mensual de costos fijos</div>
+      </div>
+
+      {/* Items */}
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+        {fixed.map(c => {
+          const pct = totalFixed > 0 ? (c.amount / totalFixed) * 100 : 0
+          return (
+            <div key={c.id} style={{background:"rgba(255,255,255,0.025)",
+              border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,padding:"12px 14px"}}>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:7}}>
+                <input value={c.name} onChange={e => updateItem(c.id, "name", e.target.value)}
+                  style={{flex:1,background:"transparent",border:"none",color:"#E2E8F4",
+                    fontFamily:"inherit",fontSize:13,fontWeight:500}}/>
+                <input type="number" value={c.amount} onChange={e => updateItem(c.id, "amount", e.target.value)}
+                  style={{width:120,background:"rgba(255,255,255,0.06)",
+                    border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,
+                    padding:"6px 9px",color:"#E2E8F4",fontFamily:"inherit",
+                    fontSize:12,textAlign:"right",boxSizing:"border-box"}}/>
+                <button onClick={() => removeItem(c.id)}
+                  style={{background:"rgba(244,114,182,0.12)",border:"1px solid rgba(244,114,182,0.25)",
+                    borderRadius:7,padding:"5px 9px",color:"#F472B6",
+                    cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>✕</button>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{flex:1,height:3,background:"rgba(255,255,255,0.06)",borderRadius:2,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${pct}%`,borderRadius:2,
+                    background:"linear-gradient(90deg,#F472B655,#F472B6)"}}/>
+                </div>
+                <span style={{fontSize:10,color:"#4B5A77",minWidth:32}}>{pct.toFixed(0)}%</span>
+                <span style={{fontSize:10,color:"#4B5A77",minWidth:60,textAlign:"right"}}>{fmtK(c.amount)}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Agregar nuevo */}
+      <div style={{background:"rgba(255,255,255,0.025)",border:"1px dashed rgba(255,255,255,0.12)",
+        borderRadius:12,padding:"13px",display:"flex",gap:8,alignItems:"center"}}>
+        <input placeholder="Nombre del gasto (ej: Otros)" value={newName}
+          onChange={e => setNewName(e.target.value)}
+          style={{flex:1,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",
+            borderRadius:8,padding:"8px 11px",color:"#E2E8F4",fontFamily:"inherit",fontSize:12}}/>
+        <input type="number" placeholder="Monto" value={newAmount}
+          onChange={e => setNewAmount(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && addItem()}
+          style={{width:110,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",
+            borderRadius:8,padding:"8px 9px",color:"#E2E8F4",fontFamily:"inherit",fontSize:12}}/>
+        <button onClick={addItem}
+          style={{background:"linear-gradient(135deg,#00C896,#4FACFE)",border:"none",
+            borderRadius:8,padding:"8px 14px",color:"#080E1A",
+            fontFamily:"inherit",fontSize:14,fontWeight:700,cursor:"pointer"}}>+</button>
       </div>
     </div>
   )
