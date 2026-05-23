@@ -17,6 +17,11 @@ export const DEFAULT_SUPPLIES = {
   babero:       { name:"Baberos (×100)",        pkgPrice:3000,   pkgQty:100, usd:false },
   guantes:      { name:"Guantes (×100)",        pkgPrice:8000,   pkgQty:100, usd:false },
   eyector:      { name:"Eyector Saliva (×100)", pkgPrice:3000,   pkgQty:100, usd:false },
+  resina:       { name:"Resina Compuesta",       pkgPrice:8000,   pkgQty:10,  usd:false },
+  gel_blanq:    { name:"Gel Blanqueador (kit)",  pkgPrice:15000,  pkgQty:1,   usd:false },
+  limas:        { name:"Limas Endodoncia (kit)", pkgPrice:12000,  pkgQty:1,   usd:false },
+  sellador:     { name:"Resina Selladora",       pkgPrice:5000,   pkgQty:20,  usd:false },
+  gasa:         { name:"Gasas (x100)",           pkgPrice:3000,   pkgQty:100, usd:false },
 }
 
 export const DEFAULT_TREATMENTS = [
@@ -169,3 +174,119 @@ export function generateRecommendations(sorted, totalFixed, incomeGoal, workMin)
 
   return recs
 }
+
+// ─── SUMINISTROS ADICIONALES PARA NUEVOS TRATAMIENTOS ────────────────────────
+export const EXTRA_SUPPLIES = {
+  resina:      { name:"Resina Compuesta",       pkgPrice:8000,  pkgQty:10, usd:false },
+  gel_blanq:   { name:"Gel Blanqueador (kit)",  pkgPrice:15000, pkgQty:1,  usd:false },
+  limas:       { name:"Limas Endodoncia (kit)", pkgPrice:12000, pkgQty:1,  usd:false },
+  sellador:    { name:"Resina Selladora",       pkgPrice:5000,  pkgQty:20, usd:false },
+  gasa:        { name:"Gasas (x100)",           pkgPrice:3000,  pkgQty:100,usd:false },
+}
+
+// ─── CATÁLOGO DE TRATAMIENTOS PREDEFINIDOS ────────────────────────────────────
+const COLORS = ["#06B6D4","#8B5CF6","#EC4899","#F59E0B","#10B981","#3B82F6","#EF4444","#14B8A6","#F97316","#6366F1","#84CC16","#E11D48","#0EA5E9"]
+
+export const TREATMENT_CATALOG = [
+  {
+    id:"caries_simple", name:"Arreglo de Caries Simple", color:"#06B6D4",
+    pricePerSession:60000, sessions:1, timePerSession:45, paymentType:"Pago Único",
+    supplies:[
+      { key:"anestesia", qty:2, when:"once" },
+      { key:"agujas",    qty:1, when:"once" },
+      { key:"resina",    qty:1, when:"once" },
+    ],
+  },
+  {
+    id:"caries_complejo", name:"Arreglo de Caries Complejo", color:"#8B5CF6",
+    pricePerSession:90000, sessions:1, timePerSession:60, paymentType:"Pago Único",
+    supplies:[
+      { key:"anestesia", qty:3, when:"once" },
+      { key:"agujas",    qty:2, when:"once" },
+      { key:"resina",    qty:2, when:"once" },
+    ],
+  },
+  {
+    id:"endodoncia_uni", name:"Endodoncia Unirradicular", color:"#EC4899",
+    pricePerSession:150000, sessions:2, timePerSession:60, paymentType:"2 Cuotas",
+    supplies:[
+      { key:"anestesia", qty:4, when:"each" },
+      { key:"agujas",    qty:2, when:"each" },
+      { key:"limas",     qty:1, when:"once" },
+    ],
+  },
+  {
+    id:"endodoncia_multi", name:"Endodoncia Multirradicular", color:"#F59E0B",
+    pricePerSession:200000, sessions:3, timePerSession:60, paymentType:"3 Cuotas",
+    supplies:[
+      { key:"anestesia", qty:4, when:"each" },
+      { key:"agujas",    qty:2, when:"each" },
+      { key:"limas",     qty:1, when:"once" },
+    ],
+  },
+  {
+    id:"extraccion_simple", name:"Extracción Simple", color:"#10B981",
+    pricePerSession:50000, sessions:1, timePerSession:30, paymentType:"Pago Único",
+    supplies:[
+      { key:"anestesia", qty:3, when:"once" },
+      { key:"agujas",    qty:2, when:"once" },
+      { key:"gasa",      qty:4, when:"once" },
+    ],
+  },
+  {
+    id:"extraccion_muela", name:"Extracción Muela del Juicio", color:"#3B82F6",
+    pricePerSession:120000, sessions:1, timePerSession:60, paymentType:"Pago Único",
+    supplies:[
+      { key:"anestesia", qty:4, when:"once" },
+      { key:"agujas",    qty:2, when:"once" },
+      { key:"bisturi",   qty:1, when:"once" },
+      { key:"ayudante",  qty:1, when:"once" },
+      { key:"gasa",      qty:4, when:"once" },
+    ],
+  },
+  {
+    id:"blanqueamiento", name:"Blanqueamiento Consultorio", color:"#EF4444",
+    pricePerSession:80000, sessions:2, timePerSession:60, paymentType:"Pago Único",
+    supplies:[
+      { key:"gel_blanq", qty:1, when:"once" },
+      { key:"babero",    qty:1, when:"each" },
+      { key:"guantes",   qty:2, when:"each" },
+    ],
+  },
+  {
+    id:"carillas", name:"Carillas de Porcelana", color:"#14B8A6",
+    pricePerSession:200000, sessions:3, timePerSession:90, paymentType:"3 Cuotas",
+    supplies:[
+      { key:"anestesia", qty:3, when:"once" },
+      { key:"agujas",    qty:2, when:"once" },
+    ],
+  },
+  {
+    id:"protesis_parcial", name:"Prótesis Removible Parcial", color:"#F97316",
+    pricePerSession:250000, sessions:3, timePerSession:60, paymentType:"3 Cuotas",
+    supplies:[],
+  },
+  {
+    id:"protesis_total", name:"Prótesis Removible Total", color:"#6366F1",
+    pricePerSession:350000, sessions:4, timePerSession:60, paymentType:"4 Cuotas",
+    supplies:[],
+  },
+  {
+    id:"selladores", name:"Selladores", color:"#84CC16",
+    pricePerSession:30000, sessions:1, timePerSession:30, paymentType:"Pago Único",
+    supplies:[
+      { key:"sellador", qty:1, when:"once" },
+      { key:"agujas",   qty:1, when:"once" },
+    ],
+  },
+  {
+    id:"radiografia", name:"Radiografía", color:"#E11D48",
+    pricePerSession:20000, sessions:1, timePerSession:15, paymentType:"Pago Único",
+    supplies:[],
+  },
+  {
+    id:"consulta", name:"Consulta / Diagnóstico", color:"#0EA5E9",
+    pricePerSession:25000, sessions:1, timePerSession:20, paymentType:"Pago Único",
+    supplies:[],
+  },
+]
